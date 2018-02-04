@@ -129,8 +129,9 @@ var helpers = {
     return canGo;
   },
   slideHandler: function (index) {
+    // index is target slide index
+
     // Functionality of animateSlide and postSlide is merged into this function
-    // console.log('slideHandler', index);
     var targetSlide, currentSlide;
     var targetLeft, currentLeft;
     var callback;
@@ -142,7 +143,7 @@ var helpers = {
     if (this.props.fade) {
       currentSlide = this.state.currentSlide;
 
-      // Don't change slide if it's not infite and current slide is the first or last slide.
+      // Don't change slide if infinite=false and target slide is out of range
       if(this.props.infinite === false &&
         (index < 0 || index >= this.state.slideCount)) {
         return;
@@ -231,15 +232,20 @@ var helpers = {
     }
 
     if (this.props.lazyLoad) {
-      var loaded = true;
       var slidesToLoad = [];
+      let slideCount = this.state.slideCount
       for (var i = targetSlide; i < targetSlide + this.props.slidesToShow; i++ ) {
-        loaded = loaded && (this.state.lazyLoadedList.indexOf(i) >= 0);
-        if (!loaded) {
-          slidesToLoad.push(i);
+        if (this.state.lazyLoadedList.indexOf(i) < 0) {
+          slidesToLoad.push(i)
+        }
+        if (i >= slideCount && this.state.lazyLoadedList.indexOf(i - slideCount) < 0) {
+          slidesToLoad.push(i - slideCount)
+        }
+        if (i < 0 && this.state.lazyLoadedList.indexOf(i + slideCount) < 0) {
+          slidesToLoad.push(i + slideCount)
         }
       }
-      if (!loaded) {
+      if (slidesToLoad.length > 0) {
         this.setState({
           lazyLoadedList: this.state.lazyLoadedList.concat(slidesToLoad)
         });
@@ -270,13 +276,13 @@ var helpers = {
         trackStyle: getTrackCSS(assign({left: currentLeft}, this.props, this.state)),
         swipeLeft: null
       };
-
       callback = () => {
-        this.setState(nextStateChanges);
-        if (this.props.afterChange) {
-          this.props.afterChange(currentSlide);
-        }
-        delete this.animationEndCallback;
+        this.setState(nextStateChanges, () => {
+          if (this.props.afterChange) {
+            this.props.afterChange(currentSlide);
+          }
+          delete this.animationEndCallback;
+        });
       };
 
       this.setState({
